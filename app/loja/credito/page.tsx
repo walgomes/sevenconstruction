@@ -107,6 +107,21 @@ export default async function CreditoPage() {
         </p>
       </section>
 
+      <section className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-700/30 bg-emerald-950/10 p-5">
+        <div>
+          <h2 className="font-semibold">🧮 Simulador de proposta</h2>
+          <p className="mt-1 text-sm text-zinc-400">
+            Estima taxa a.a. baseado em dados RFB + compliance do cliente. Sem precisar contrato com FIDC ainda.
+          </p>
+        </div>
+        <Link
+          href="/loja/credito/simular"
+          className="rounded-md bg-amber-500 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-amber-400"
+        >
+          Simular agora →
+        </Link>
+      </section>
+
       <section className="mt-8">
         <h2 className="text-lg font-semibold">Parceiros financeiros cadastrados</h2>
         {parceiros.length === 0 ? (
