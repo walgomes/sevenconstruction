@@ -32,11 +32,8 @@ export type DadosEmpresa = {
 export type Socio = {
   cnpj_cpf_socio: string;
   nome_socio: string | null;
-  qualificacao_socio: string | null;
+  qualif_socio: string | null;
   data_entrada: string | null;
-  pais: string | null;
-  representante_legal: string | null;
-  qualificacao_repr_legal: string | null;
 };
 
 export type EmpresaSocio = {
@@ -109,8 +106,7 @@ export async function buscarSocios(cnpj: string): Promise<Socio[]> {
   const limpo = cnpj.replace(/\D/g, "");
   if (limpo.length !== 14) return [];
   return rfbQuery<Socio>(
-    `SELECT cnpj_cpf_socio, nome_socio, qualificacao_socio,
-            data_entrada::text, pais, representante_legal, qualificacao_repr_legal
+    `SELECT cnpj_cpf_socio, nome_socio, qualif_socio, data_entrada::text
        FROM socios
       WHERE cnpj = $1
       ORDER BY data_entrada DESC NULLS LAST
@@ -166,7 +162,7 @@ export async function lerCompliance(cnpj: string): Promise<Compliance> {
   ).catch(() => [{ n: 0 }]);
 
   const pgfnRows = await rfbQuery<{ n: number; total: number | null }>(
-    `SELECT COUNT(*)::int AS n, SUM(valor_devido)::float AS total
+    `SELECT COUNT(*)::int AS n, SUM(valor)::float AS total
        FROM compliance_pgfn WHERE cnpj = $1`,
     [limpo],
   ).catch(() => [{ n: 0, total: null }]);

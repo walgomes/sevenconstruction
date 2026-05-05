@@ -28,7 +28,7 @@ type Resp = {
   socios?: {
     cnpj_cpf_socio: string;
     nome_socio: string | null;
-    qualificacao_socio: string | null;
+    qualif_socio: string | null;
     data_entrada: string | null;
   }[];
   cruzamentos?: {
@@ -210,7 +210,7 @@ export default function ConsultaCnpjPage() {
                       <tr key={i} className="border-b border-zinc-800 last:border-0">
                         <td className="px-3 py-2 font-medium">{s.nome_socio || "—"}</td>
                         <td className="px-3 py-2 font-mono text-xs">{fmtCpfCnpj(s.cnpj_cpf_socio)}</td>
-                        <td className="px-3 py-2 text-xs text-zinc-400">{s.qualificacao_socio || "—"}</td>
+                        <td className="px-3 py-2 text-xs text-zinc-400">{s.qualif_socio || "—"}</td>
                         <td className="px-3 py-2 text-xs text-zinc-400">{s.data_entrada || "—"}</td>
                       </tr>
                     ))}
