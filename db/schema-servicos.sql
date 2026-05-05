@@ -15,6 +15,17 @@ CREATE TABLE IF NOT EXISTS sevenconstruction.servicos_catalogo (
   comissao_loja_pct    INT NOT NULL DEFAULT 50,
   -- % da margem (preco_venda - preco_custo) que vai pra loja
   descricao            TEXT,
+  -- Marketing — copy pronto pra loja apresentar pro cliente:
+  pitch_curto          TEXT,
+  -- 1 frase: "O que ganho com isso?"
+  para_quem            TEXT,
+  -- 1 linha: tipo de cliente
+  casos_uso            TEXT[],
+  -- 3-5 cenários práticos
+  prazo_entrega        TEXT,
+  -- "1 dia útil" / "na hora" / "até 3 dias"
+  como_vender          TEXT,
+  -- Roteiro pra vendedor convencer
   ativo_default        BOOLEAN NOT NULL DEFAULT TRUE,
   ordem                INT NOT NULL DEFAULT 100,
   criado_em            TIMESTAMPTZ NOT NULL DEFAULT NOW()

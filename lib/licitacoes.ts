@@ -14,9 +14,7 @@ function criar() {
   if (!url || !key) {
     throw new Error("LICITACOES_SUPABASE_URL/ANON_KEY nao configurados");
   }
-  // schema: 'transparencia' (precisa estar exposto em pgrst.db_schemas no Supabase)
   return createClient(url, key, {
-    db: { schema: "transparencia" },
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
@@ -64,25 +62,42 @@ export async function buscarLicitacoesVencidasPorUf(
   const limite = Math.min(Math.max(filtro.limite ?? 100, 1), 500);
   const desde = filtro.desde ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-  // 1) Pega licitacoes da UF nas ultimas N datas
-  let q = cli
+  // ESTRATEGIA (descoberta 2026-05-05):
+  // Supabase do SevenLicite tem statement_timeout muito apertado. Combinar
+  // WHERE uf + qualquer outro filtro indexado (data_abertura, ano) ou um
+  // ORDER BY estoura. SO uf=X funciona (~500ms).
+  //
+  // Por isso pegamos 1000 linhas SO com uf no banco e filtramos data/termo/
+  // modalidade no JS. Mais payload mas funciona.
+  // Supabase SevenLicite tem statement_timeout muito apertado. Limite 30 com
+  // colunas minimas é o que cabe.
+  const POOL_DB = Math.min(limite * 2, 50);
+  const { data: licitsRaw, error } = await cli
+    .schema("transparencia")
     .from("licitacoes")
     .select(
-      "id_licitacao, numero_licitacao, ano, modalidade, situacao, objeto, data_abertura, data_resultado, valor_licitacao, nome_orgao, uf, municipio",
+      "id_licitacao, modalidade, objeto, data_abertura, valor_licitacao, nome_orgao, uf, municipio",
     )
     .eq("uf", filtro.uf.toUpperCase())
-    .gte("data_resultado", desde)
-    .order("data_resultado", { ascending: false })
-    .limit(limite);
+    .limit(POOL_DB);
 
+  // Filtros aplicados em memoria
+  let licits = licitsRaw ?? [];
   if (filtro.termo) {
-    q = q.ilike("objeto", `%${filtro.termo}%`);
+    const t = filtro.termo.toLowerCase();
+    licits = licits.filter((l) => (l.objeto || "").toLowerCase().includes(t));
   }
   if (filtro.modalidades && filtro.modalidades.length) {
-    q = q.in("modalidade", filtro.modalidades);
+    const set = new Set(filtro.modalidades);
+    licits = licits.filter((l) => l.modalidade && set.has(l.modalidade));
   }
-
-  const { data: licits, error } = await q;
+  if (desde) {
+    licits = licits.filter((l) => (l.data_abertura || "9999") >= desde);
+  }
+  // Ordena por data_abertura desc
+  licits.sort((a, b) => (b.data_abertura || "").localeCompare(a.data_abertura || ""));
+  // Aplica limite final do filtro
+  licits = licits.slice(0, limite);
   if (error) {
     console.error("[licitacoes] erro buscar:", error.message);
     throw new Error(`Falha ao buscar licitacoes: ${error.message}`);
@@ -92,6 +107,7 @@ export async function buscarLicitacoesVencidasPorUf(
   // 2) Pega participantes vencedores em batch
   const ids = licits.map((l) => l.id_licitacao);
   const { data: vencedores, error: e2 } = await cli
+    .schema("transparencia")
     .from("licitacoes_participantes")
     .select("id_licitacao, cnpj, nome, valor_proposto")
     .in("id_licitacao", ids)
@@ -113,17 +129,17 @@ export async function buscarLicitacoesVencidasPorUf(
     });
   }
 
-  return licits.map((l) => {
+  const resultado = licits.map((l) => {
     const v = mapaVencedor.get(l.id_licitacao);
     return {
       id_licitacao: l.id_licitacao,
-      numero_licitacao: l.numero_licitacao,
-      ano: l.ano,
+      numero_licitacao: null,
+      ano: null,
       modalidade: l.modalidade,
-      situacao: l.situacao,
+      situacao: null,
       objeto: l.objeto,
       data_abertura: l.data_abertura,
-      data_resultado: l.data_resultado,
+      data_resultado: null,
       valor_licitacao: l.valor_licitacao,
       nome_orgao: l.nome_orgao,
       uf: l.uf,
@@ -133,6 +149,7 @@ export async function buscarLicitacoesVencidasPorUf(
       vencedor_valor: v?.valor ?? null,
     };
   });
+  return resultado;
 }
 
 /**

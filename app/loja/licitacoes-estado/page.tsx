@@ -83,8 +83,8 @@ export default function LicitacoesEstadoPage() {
           <p className="text-xs uppercase tracking-wider text-amber-400">B2G</p>
           <h1 className="mt-1 text-3xl font-semibold">Licitações no meu Estado</h1>
           <p className="mt-1 text-sm text-zinc-400">
-            Obras vencidas no <strong>seu Estado</strong> — independente de onde o vencedor está.
-            Cada lead é um construtor que vai precisar de material aqui.
+            Licitações abertas no <strong>seu Estado</strong> — independente de onde o vencedor está.
+            Cada vencedor é um construtor que vai precisar de material aqui.
           </p>
         </div>
         <Link

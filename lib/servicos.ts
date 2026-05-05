@@ -11,6 +11,11 @@ export type ServicoCatalogo = {
   preco_venda_sugerido: number;
   comissao_loja_pct: number;
   descricao: string | null;
+  pitch_curto: string | null;
+  para_quem: string | null;
+  casos_uso: string[] | null;
+  prazo_entrega: string | null;
+  como_vender: string | null;
   ativo_default: boolean;
   ordem: number;
 };
@@ -28,6 +33,7 @@ export async function listarServicosComAtivacao(
   const r = await pool.query(
     `SELECT c.id, c.codigo, c.nome, c.categoria, c.preco_custo,
             c.preco_venda_sugerido, c.comissao_loja_pct, c.descricao,
+            c.pitch_curto, c.para_quem, c.casos_uso, c.prazo_entrega, c.como_vender,
             c.ativo_default, c.ordem,
             COALESCE(a.ativo, c.ativo_default) AS ativo_na_loja,
             a.preco_venda_custom
@@ -51,6 +57,11 @@ export async function listarServicosComAtivacao(
       preco_venda_sugerido: Number(row.preco_venda_sugerido),
       comissao_loja_pct: Number(row.comissao_loja_pct),
       descricao: row.descricao,
+      pitch_curto: row.pitch_curto,
+      para_quem: row.para_quem,
+      casos_uso: row.casos_uso,
+      prazo_entrega: row.prazo_entrega,
+      como_vender: row.como_vender,
       ativo_default: row.ativo_default,
       ordem: row.ordem,
       ativo_na_loja: row.ativo_na_loja,

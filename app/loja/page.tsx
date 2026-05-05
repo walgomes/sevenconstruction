@@ -67,9 +67,9 @@ export default async function PainelLoja() {
           <TileLink href="/loja/comissoes" titulo="Comissões (receita)" status="ativo" />
           <TileLink href="/loja/prospec" titulo="Prospecção (CNPJ + nome + CNAE)" status="ativo" />
           <TileLink href="/loja/licitacoes-estado" titulo="Licitações no meu Estado" status="ativo" />
+          <TileLink href="/loja/profissionais" titulo="Time de profissionais (indicação)" status="ativo" />
           <Tile titulo="Disparo Email + WhatsApp" status="em breve" />
           <Tile titulo="Crédito no checkout (FIDC)" status="em breve" />
-          <Tile titulo="Diretório de profissionais" status="em breve" />
         </ul>
       </section>
 

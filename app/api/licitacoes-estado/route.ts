@@ -58,9 +58,12 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("[licitacoes-estado] erro:", msg);
+    const detalhe = /timeout|canceling/i.test(msg)
+      ? "Supabase do SevenLicite respondeu lento agora. Tente novamente em alguns segundos."
+      : "Falha ao buscar licitações.";
     return NextResponse.json(
-      { ok: false, motivo: "Falha ao buscar licitações" },
-      { status: 500 },
+      { ok: false, motivo: detalhe },
+      { status: 503 },
     );
   }
 }
