@@ -59,6 +59,16 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("[prospec/buscar] erro:", msg);
+    if (/canceling statement|statement timeout/i.test(msg)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          motivo:
+            "Banco RFB lento agora (sync RFB rodando ao fundo). Tente novamente em ~5 segundos com filtros mais específicos.",
+        },
+        { status: 503 },
+      );
+    }
     return NextResponse.json(
       { ok: false, motivo: "Falha na busca RFB" },
       { status: 500 },

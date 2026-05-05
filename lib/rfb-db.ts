@@ -28,6 +28,14 @@ const rfbPool = url
     })
   : null;
 
+// Statement timeout 12s por sessao: se backfill saturar IO, postgres mata
+// a query e devolve erro em vez de travar a request da app por minutos.
+if (rfbPool) {
+  rfbPool.on("connect", (c) => {
+    c.query("SET statement_timeout = 12000").catch(() => {});
+  });
+}
+
 const SQL_LEITURA = /^\s*(SELECT|WITH)\b/i;
 
 export async function rfbQuery<T = Record<string, unknown>>(
