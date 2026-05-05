@@ -7,6 +7,10 @@ export type ServicoCatalogo = {
   codigo: string;
   nome: string;
   categoria: string;
+  modo: string | null;             // 'automatica' | 'concierge' | 'paga'
+  emissor: string | null;
+  link_emissor: string | null;
+  prerequisito: string | null;
   preco_custo: number;
   preco_venda_sugerido: number;
   comissao_loja_pct: number;
@@ -31,8 +35,9 @@ export async function listarServicosComAtivacao(
   loja_id: number,
 ): Promise<ServicoComAtivacao[]> {
   const r = await pool.query(
-    `SELECT c.id, c.codigo, c.nome, c.categoria, c.preco_custo,
-            c.preco_venda_sugerido, c.comissao_loja_pct, c.descricao,
+    `SELECT c.id, c.codigo, c.nome, c.categoria, c.modo, c.emissor,
+            c.link_emissor, c.prerequisito,
+            c.preco_custo, c.preco_venda_sugerido, c.comissao_loja_pct, c.descricao,
             c.pitch_curto, c.para_quem, c.casos_uso, c.prazo_entrega, c.como_vender,
             c.ativo_default, c.ordem,
             COALESCE(a.ativo, c.ativo_default) AS ativo_na_loja,
@@ -53,6 +58,10 @@ export async function listarServicosComAtivacao(
       codigo: row.codigo,
       nome: row.nome,
       categoria: row.categoria,
+      modo: row.modo,
+      emissor: row.emissor,
+      link_emissor: row.link_emissor,
+      prerequisito: row.prerequisito,
       preco_custo: custo,
       preco_venda_sugerido: Number(row.preco_venda_sugerido),
       comissao_loja_pct: Number(row.comissao_loja_pct),
