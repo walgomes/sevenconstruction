@@ -314,22 +314,67 @@ async function lerDoCache(filtro: FiltroLicitacoes): Promise<{
 }
 
 /**
- * Busca com estrategia: tenta Supabase. Se ok, grava cache e retorna.
- * Se falhar (timeout), retorna do cache local (mesmo "antigo").
+ * Estrategia v2: PREFERE cache local (rapido + estavel). Refresca do Supabase
+ * em background quando cache esta velho (>24h) — nao bloqueia resposta.
+ *
+ * - Cache fresco (<24h): retorna do cache, fonte='cache'
+ * - Cache velho ou vazio: tenta Supabase em paralelo com timeout curto (5s);
+ *   se OK retorna fresh, senao retorna o que tiver no cache
+ *
+ * O sync proativo (scripts/sync-licitacoes-cache.mjs) deve rodar diariamente
+ * pra manter o cache fresco. Cron: 1x ao dia em horario de menor carga.
  */
 export async function buscarLicitacoesEnriquecidas(
   filtro: FiltroLicitacoes,
 ): Promise<ResultadoBusca> {
+  // Sempre comeca tentando o cache
+  const cached = await lerDoCache(filtro);
+  const cacheFresco = cached.idade_h != null && cached.idade_h < 24;
+
+  if (cacheFresco && cached.licits.length > 0) {
+    // Cache fresco: retorna direto. Refresca em background se >12h.
+    if ((cached.idade_h ?? 0) > 12) {
+      refrescarEmBackground(filtro);
+    }
+    return {
+      fonte: "cache",
+      cache_idade_h: cached.idade_h,
+      licitacoes: cached.licits,
+    };
+  }
+
+  // Cache velho ou vazio: tenta Supabase com timeout curto
   try {
-    const supabaseLicits = await buscarDoSupabase(filtro);
+    const supabaseLicits = await Promise.race([
+      buscarDoSupabase(filtro),
+      new Promise<never>((_, rej) =>
+        setTimeout(() => rej(new Error("timeout_supabase_5s")), 5000),
+      ),
+    ]);
     const enriq = await enriquecerComContato(supabaseLicits);
-    // Grava cache em background — nao bloqueia resposta
     gravarNoCache(enriq).catch((e) => console.error("[licitacoes] cache write fail", e));
     return { fonte: "supabase", cache_idade_h: 0, licitacoes: enriq };
   } catch (eSupabase) {
     const msg = eSupabase instanceof Error ? eSupabase.message : String(eSupabase);
-    console.warn("[licitacoes] Supabase falhou, usando cache:", msg);
-    const { licits, idade_h } = await lerDoCache(filtro);
-    return { fonte: "cache_fallback", cache_idade_h: idade_h, licitacoes: licits };
+    console.warn("[licitacoes] Supabase falhou:", msg);
+    // Mesmo se cache antigo, vale mais que vazio
+    return {
+      fonte: "cache_fallback",
+      cache_idade_h: cached.idade_h,
+      licitacoes: cached.licits,
+    };
   }
+}
+
+function refrescarEmBackground(filtro: FiltroLicitacoes): void {
+  setTimeout(async () => {
+    try {
+      const fresh = await buscarDoSupabase(filtro);
+      const enriq = await enriquecerComContato(fresh);
+      await gravarNoCache(enriq);
+      console.log(`[licitacoes] cache refrescado em background uf=${filtro.uf} (${enriq.length} rows)`);
+    } catch (e) {
+      // refresh background nao precisa logar erro toda hora
+    }
+  }, 0);
 }
