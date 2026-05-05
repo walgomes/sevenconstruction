@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { lerSessao } from "@/lib/auth";
+import { exigirLojaUser } from "@/lib/auth-helpers";
 import { importarClientesDeProspec } from "@/lib/clientes";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
-  const sessao = await lerSessao();
-  if (!sessao || sessao.role !== "loja_user" || !sessao.loja_id) {
-    return NextResponse.json({ ok: false, motivo: "Não autenticado" }, { status: 401 });
-  }
+  // Rate limit apertado: import pode ser caro (puxa milhares de rows)
+  const sessao = await exigirLojaUser(req, { rate_limite: 5 });
+  if (sessao instanceof NextResponse) return sessao;
 
   let body: { prospec_lista_id?: number };
   try {

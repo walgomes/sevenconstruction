@@ -1,23 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { lerSessao } from "@/lib/auth";
+import { exigirLojaUser } from "@/lib/auth-helpers";
 import { listarListasMkt, criarListaMkt, importarDeProspec } from "@/lib/marketing";
 
 export const runtime = "nodejs";
 
-export async function GET() {
-  const sessao = await lerSessao();
-  if (!sessao || sessao.role !== "loja_user" || !sessao.loja_id) {
-    return NextResponse.json({ ok: false, motivo: "Não autenticado" }, { status: 401 });
-  }
+export async function GET(req: NextRequest) {
+  const sessao = await exigirLojaUser(req);
+  if (sessao instanceof NextResponse) return sessao;
   const listas = await listarListasMkt(sessao.loja_id);
   return NextResponse.json({ ok: true, listas });
 }
 
 export async function POST(req: NextRequest) {
-  const sessao = await lerSessao();
-  if (!sessao || sessao.role !== "loja_user" || !sessao.loja_id) {
-    return NextResponse.json({ ok: false, motivo: "Não autenticado" }, { status: 401 });
-  }
+  const sessao = await exigirLojaUser(req, { rate_limite: 10 });
+  if (sessao instanceof NextResponse) return sessao;
   let body: { nome?: string; descricao?: string; prospec_lista_id?: number };
   try {
     body = await req.json();

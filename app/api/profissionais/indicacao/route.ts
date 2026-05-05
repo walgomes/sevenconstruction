@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { lerSessao } from "@/lib/auth";
+import { exigirLojaUser } from "@/lib/auth-helpers";
 import { registrarIndicacao } from "@/lib/profissionais";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
-  const sessao = await lerSessao();
-  if (!sessao || sessao.role !== "loja_user" || !sessao.loja_id) {
-    return NextResponse.json({ ok: false, motivo: "Não autenticado" }, { status: 401 });
-  }
+  const sessao = await exigirLojaUser(req, { rate_limite: 60 });
+  if (sessao instanceof NextResponse) return sessao;
 
   let body: {
     profissional_id?: number;

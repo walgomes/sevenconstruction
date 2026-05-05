@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { lerSessao } from "@/lib/auth";
+import { exigirLojaUser } from "@/lib/auth-helpers";
 import {
   listarProfissionais,
   criarProfissional,
@@ -9,10 +9,8 @@ import {
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
-  const sessao = await lerSessao();
-  if (!sessao || sessao.role !== "loja_user" || !sessao.loja_id) {
-    return NextResponse.json({ ok: false, motivo: "Não autenticado" }, { status: 401 });
-  }
+  const sessao = await exigirLojaUser(req);
+  if (sessao instanceof NextResponse) return sessao;
   const url = new URL(req.url);
   const [profissionais, resumo] = await Promise.all([
     listarProfissionais({
@@ -27,10 +25,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const sessao = await lerSessao();
-  if (!sessao || sessao.role !== "loja_user" || !sessao.loja_id) {
-    return NextResponse.json({ ok: false, motivo: "Não autenticado" }, { status: 401 });
-  }
+  const sessao = await exigirLojaUser(req, { rate_limite: 30 });
+  if (sessao instanceof NextResponse) return sessao;
 
   let body: {
     nome?: string;

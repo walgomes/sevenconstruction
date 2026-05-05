@@ -8,6 +8,7 @@ const ROTAS_PUBLICAS = new Set([
   "/login",
   "/api/auth/login",
   "/api/auth/logout",
+  "/api/disparo/unsubscribe",  // LGPD: descadastro publico (rate limit por IP no handler)
 ]);
 
 // CSP em prod tem upgrade-insecure-requests; em dev removemos pra não brigar
