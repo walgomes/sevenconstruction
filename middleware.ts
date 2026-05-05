@@ -10,7 +10,12 @@ const ROTAS_PUBLICAS = new Set([
   "/api/auth/logout",
 ]);
 
-const CSP = [
+// CSP em prod tem upgrade-insecure-requests; em dev removemos pra não brigar
+// com Turbopack HMR. unsafe-inline é necessário pelo Next 16 inline boot
+// script — em prod ideal seria nonce-based mas adicionar nonce exige
+// integração mais profunda que o middleware (Next ainda não tem hook nativo
+// que entrega nonce p/ <Script>).
+const CSP_BASE = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
@@ -21,18 +26,25 @@ const CSP = [
   "base-uri 'self'",
   "form-action 'self'",
   "object-src 'none'",
-].join("; ");
+];
+const CSP_PROD = [...CSP_BASE, "upgrade-insecure-requests"].join("; ");
+const CSP_DEV = CSP_BASE.join("; ");
 
 function aplicarHeaders(res: NextResponse): NextResponse {
-  res.headers.set("Content-Security-Policy", CSP);
+  const isProd = process.env.NODE_ENV === "production";
+  res.headers.set("Content-Security-Policy", isProd ? CSP_PROD : CSP_DEV);
   res.headers.set("X-Frame-Options", "DENY");
   res.headers.set("X-Content-Type-Options", "nosniff");
   res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
+  res.headers.set(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=(), payment=(), interest-cohort=(), browsing-topics=()",
+  );
   res.headers.set("Cross-Origin-Opener-Policy", "same-origin");
   res.headers.set("Cross-Origin-Resource-Policy", "same-origin");
   res.headers.set("X-DNS-Prefetch-Control", "off");
-  if (process.env.NODE_ENV === "production") {
+  res.headers.set("X-Permitted-Cross-Domain-Policies", "none");
+  if (isProd) {
     res.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
   }
   return res;

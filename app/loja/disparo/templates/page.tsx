@@ -18,6 +18,8 @@ export default function TemplatesPage() {
   const [carregando, setCarregando] = useState(true);
   const [modalAberto, setModalAberto] = useState(false);
   const [filtroCanal, setFiltroCanal] = useState<string>("");
+  const [gerandoIa, setGerandoIa] = useState(false);
+  const [msgIa, setMsgIa] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -32,6 +34,27 @@ export default function TemplatesPage() {
   useEffect(() => {
     carregar();
   }, [carregar]);
+
+  async function gerarComIa() {
+    setGerandoIa(true);
+    setMsgIa(null);
+    try {
+      const r = await fetch("/api/disparo/ia-gerar", { method: "POST" });
+      const j = await r.json();
+      if (j.ok) {
+        setMsgIa(`✓ ${j.inseridos} templates gerados pela IA`);
+        carregar();
+      } else if (j.motivo === "Ja gerou hoje") {
+        setMsgIa("⚠️ Já gerou templates IA hoje — volta amanhã");
+      } else {
+        setMsgIa(`❌ ${j.motivo}`);
+      }
+    } catch {
+      setMsgIa("❌ Erro de rede");
+    } finally {
+      setGerandoIa(false);
+    }
+  }
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-8">
@@ -48,6 +71,14 @@ export default function TemplatesPage() {
         </div>
         <div className="flex gap-2">
           <button
+            onClick={gerarComIa}
+            disabled={gerandoIa}
+            className="rounded-md border border-violet-500/40 bg-violet-500/10 px-3 py-1.5 text-sm font-medium text-violet-200 hover:bg-violet-500/20 disabled:opacity-50"
+            title="Gera 3 templates novos (1 email + 2 WhatsApp) com IA, personalizados pra sua loja"
+          >
+            {gerandoIa ? "Gerando..." : "🤖 Gerar com IA"}
+          </button>
+          <button
             onClick={() => setModalAberto(true)}
             className="rounded-md bg-amber-500 px-3 py-1.5 text-sm font-medium text-zinc-950 hover:bg-amber-400"
           >
@@ -61,6 +92,11 @@ export default function TemplatesPage() {
           </Link>
         </div>
       </header>
+      {msgIa && (
+        <div className="mt-4 rounded-md border border-violet-500/30 bg-violet-950/30 px-4 py-2 text-sm text-violet-200">
+          {msgIa}
+        </div>
+      )}
 
       <div className="mt-6 flex gap-2">
         <button
