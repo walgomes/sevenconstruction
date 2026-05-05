@@ -82,6 +82,12 @@ export type RegistrarVendaInput = {
   descricao?: string;
   criado_por: number;
   metadados?: Record<string, unknown>;
+  /**
+   * Codigo de indicacao opcional. Se informado, alem da comissao_evento (loja),
+   * tambem registra indicacao_evento (profissional ganha comissao por trazer
+   * cliente — ledger separado do margem do servico).
+   */
+  codigo_indicacao?: string | null;
 };
 
 /**
@@ -141,13 +147,66 @@ export async function registrarVendaServico(
         valor_custo,
         comissao,
         input.descricao ?? null,
-        JSON.stringify(input.metadados ?? {}),
+        JSON.stringify({
+          ...(input.metadados ?? {}),
+          ...(input.codigo_indicacao ? { codigo_indicacao: input.codigo_indicacao } : {}),
+        }),
         input.criado_por,
       ],
     );
+    const evento_id = ins.rows[0].id as number;
+
+    // Se veio codigo de indicacao: gera indicacao_evento pra profissional
+    if (input.codigo_indicacao) {
+      const codigo = input.codigo_indicacao.trim().toUpperCase();
+      const p = await client.query(
+        `SELECT id, nome, comissao_pct, comissao_fixa
+           FROM sevenconstruction.profissionais
+          WHERE codigo_indicacao = $1 AND loja_id = $2 AND ativo = TRUE
+          LIMIT 1`,
+        [codigo, input.loja_id],
+      );
+      const prof = p.rows[0];
+      if (prof) {
+        const comissaoProf =
+          prof.comissao_fixa != null
+            ? Number(prof.comissao_fixa)
+            : (Number(valor_venda) * Number(prof.comissao_pct)) / 100;
+
+        let cliente_nome: string | null = null;
+        if (input.cliente_id) {
+          const c = await client.query(
+            `SELECT nome_razao FROM sevenconstruction.loja_clientes WHERE id = $1`,
+            [input.cliente_id],
+          );
+          cliente_nome = c.rows[0]?.nome_razao ?? null;
+        }
+
+        await client.query(
+          `INSERT INTO sevenconstruction.indicacao_evento
+             (loja_id, profissional_id, cliente_id, profissional_nome, cliente_nome,
+              valor_venda, comissao_valor, descricao, metadados, criado_por)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+          [
+            input.loja_id,
+            prof.id,
+            input.cliente_id ?? null,
+            prof.nome,
+            cliente_nome,
+            valor_venda,
+            comissaoProf,
+            `Auto: indicacao por codigo ${codigo} (servico: ${s.codigo})`,
+            JSON.stringify({ origem: "auto_servico", comissao_evento_id: evento_id }),
+            input.criado_por,
+          ],
+        );
+      }
+      // Se profissional nao foi encontrado, simplesmente ignora — comissao da
+      // loja foi gerada e o servico foi registrado normalmente.
+    }
 
     await client.query("COMMIT");
-    return ins.rows[0].id as number;
+    return evento_id;
   } catch (e) {
     await client.query("ROLLBACK");
     throw e;

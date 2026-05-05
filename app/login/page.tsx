@@ -9,18 +9,23 @@ export default function LoginPage() {
   const params = useSearchParams();
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [aceiteTermos, setAceiteTermos] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
 
   async function entrar(e: React.FormEvent) {
     e.preventDefault();
+    if (!aceiteTermos) {
+      setErro("Aceite os termos para continuar");
+      return;
+    }
     setErro(null);
     setCarregando(true);
     try {
       const r = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, senha }),
+        body: JSON.stringify({ email, senha, aceite_termos: true }),
       });
       const j = await r.json();
       if (!r.ok || !j.ok) {
@@ -70,6 +75,21 @@ export default function LoginPage() {
           />
         </div>
 
+        <label className="flex cursor-pointer items-start gap-2 text-sm text-zinc-400">
+          <input
+            type="checkbox"
+            checked={aceiteTermos}
+            onChange={(e) => setAceiteTermos(e.target.checked)}
+            className="mt-0.5 accent-amber-500"
+          />
+          <span>
+            Aceito os{" "}
+            <Link href="/termos" target="_blank" className="text-amber-400 hover:underline">
+              Termos de Uso e Política de Privacidade
+            </Link>
+          </span>
+        </label>
+
         {erro && (
           <div className="rounded-md border border-red-700/50 bg-red-950/40 px-3 py-2 text-sm text-red-300">
             {erro}
@@ -78,7 +98,7 @@ export default function LoginPage() {
 
         <button
           type="submit"
-          disabled={carregando}
+          disabled={carregando || !aceiteTermos}
           className="w-full rounded-md bg-amber-500 px-4 py-2.5 font-medium text-zinc-950 hover:bg-amber-400 disabled:opacity-50"
         >
           {carregando ? "Entrando…" : "Entrar"}

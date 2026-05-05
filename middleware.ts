@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 
 const COOKIE = "sc_auth";
 
-const PASS_PREFIX = ["/_next", "/favicon", "/images", "/fonts", "/robots", "/sitemap"];
+const PASS_PREFIX = ["/_next", "/favicon", "/images", "/fonts", "/robots", "/sitemap", "/r/"];
 const ROTAS_PUBLICAS = new Set([
   "/",
   "/login",
+  "/termos",
   "/api/auth/login",
   "/api/auth/logout",
   "/api/disparo/unsubscribe",  // LGPD: descadastro publico (rate limit por IP no handler)

@@ -13,6 +13,7 @@ export async function POST(req: NextRequest) {
     servico_id?: number;
     valor_venda?: number;
     descricao?: string;
+    codigo_indicacao?: string;
   };
   try {
     body = await req.json();
@@ -32,6 +33,7 @@ export async function POST(req: NextRequest) {
       servico_id,
       valor_venda: body.valor_venda,
       descricao: body.descricao,
+      codigo_indicacao: body.codigo_indicacao,
       criado_por: sessao.id,
     });
     return NextResponse.json({ ok: true, id });

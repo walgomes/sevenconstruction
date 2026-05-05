@@ -42,14 +42,6 @@ export default async function PainelLoja() {
             <span className="font-medium text-zinc-200">{resumo.plano}</span>
           </p>
         </div>
-        <form action="/api/auth/logout" method="POST">
-          <button
-            type="submit"
-            className="rounded-md border border-zinc-700 px-3 py-1.5 text-sm text-zinc-300 hover:bg-zinc-900"
-          >
-            Sair
-          </button>
-        </form>
       </header>
 
       <section className="mt-8 grid gap-4 md:grid-cols-4">
@@ -68,10 +60,12 @@ export default async function PainelLoja() {
           <TileLink href="/loja/prospec" titulo="Prospecção (CNPJ + nome + CNAE)" status="ativo" />
           <TileLink href="/loja/licitacoes-estado" titulo="Licitações no meu Estado" status="ativo" />
           <TileLink href="/loja/profissionais" titulo="Time de profissionais (indicação)" status="ativo" />
+          <TileLink href="/loja/consulta-cnpj" titulo="Consulta CNPJ + sócios + compliance" status="ativo" />
           <TileLink href="/loja/disparo" titulo="Disparo Email + WhatsApp" status="ativo" />
           <TileLink href="/loja/credito" titulo="Crédito no checkout (FIDC)" status="esqueleto" />
           <TileLink href="/loja/marketplace" titulo="Marketplace lojas parceiras" status="esqueleto" />
           <TileLink href="/loja/revendedores" titulo="Revendedores multi-nível" status="esqueleto" />
+          <TileLink href="/loja/perfil" titulo="⚙️ Editar perfil da loja" status="ativo" />
         </ul>
       </section>
 
