@@ -60,15 +60,16 @@ export default async function PainelLoja() {
       </section>
 
       <section className="mt-10">
-        <h2 className="text-lg font-semibold">Próximos passos</h2>
-        <p className="mt-1 text-sm text-zinc-400">
-          F0 (auth/tenant) entregue. F1 (prospecção do bairro) é o próximo passo.
-        </p>
+        <h2 className="text-lg font-semibold">Módulos</h2>
         <ul className="mt-4 grid gap-3 md:grid-cols-2">
-          <Tile titulo="Prospecção do bairro" status="em breve" />
-          <Tile titulo="Catálogo + cotação" status="em breve" />
+          <TileLink href="/loja/clientes-base" titulo="Base de clientes da loja" status="ativo" />
+          <TileLink href="/loja/catalogo-servicos" titulo="Catálogo de serviços digitais" status="ativo" />
+          <TileLink href="/loja/comissoes" titulo="Comissões (receita)" status="ativo" />
+          <TileLink href="/loja/prospec" titulo="Prospecção (CNPJ + nome + CNAE)" status="ativo" />
+          <TileLink href="/loja/licitacoes-estado" titulo="Licitações no meu Estado" status="ativo" />
+          <Tile titulo="Disparo Email + WhatsApp" status="em breve" />
           <Tile titulo="Crédito no checkout (FIDC)" status="em breve" />
-          <Tile titulo="Consultas & certidões" status="em breve" />
+          <Tile titulo="Diretório de profissionais" status="em breve" />
         </ul>
       </section>
 
@@ -100,5 +101,19 @@ function Tile({ titulo, status }: { titulo: string; status: string }) {
         {status}
       </span>
     </div>
+  );
+}
+
+function TileLink({ href, titulo, status }: { href: string; titulo: string; status: string }) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-3 transition hover:border-amber-500/40 hover:bg-zinc-900"
+    >
+      <span className="text-sm">{titulo}</span>
+      <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-300">
+        {status}
+      </span>
+    </Link>
   );
 }

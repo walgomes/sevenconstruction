@@ -32,19 +32,33 @@ npm run dev
 
 ## Login demo
 
-- Email: `dono@demo.local`
-- Senha: `demo123456`
+- Email: `walbericogomes@gmail.com`
+- Senha: `Wal10201`
 
-## Roadmap
+## Status (2026-05-05)
 
-- F0 (auth multi-tenant + landing + login + dashboard) — entregue
-- F1 (prospecção geo + lookalike portado do consultTudo) — próximo
-- F2 (catálogo + cotação)
-- F3 (checkout financeiro com 3 parceiros piloto via adapter pattern)
-- F4 (consultas + certidões + certificado digital)
-- F5 (plug SevenLicite + Seven Brecha)
-- F6 (clube + PWA cliente final)
-- F7 (onboarding 150+ parceiros via 1 adapter por semana)
+### Entregue
+
+**Sprint 0 — Auth multi-tenant**
+- Landing pública, login, dashboard
+- Cookie `sc_auth` (HMAC-SHA256), bcrypt, rate limit
+- Middleware com CSP + 8 headers de segurança
+
+**Sprint 1 — Geração de leads**
+- `/loja/prospec` — busca empresas no RFB de 70M (sevendb do consultTudo via role `sc_reader` read-only). Filtros: UF, município, nome, CNPJ, CNAE preset, porte. Salva resultados como `prospec_listas` + exporta CSV.
+- `/loja/licitacoes-estado` — licitações vencidas no Estado da loja (Supabase do SevenLicite via `transparencia.licitacoes`). Junta com vencedor + telefone/email RFB.
+- Schema marketing pré-instalado (mkt_listas, mkt_campanhas, mkt_envios, mkt_supressoes, mkt_templates) — UI de disparo virá no Sprint 4.
+
+**Sprint 2 — Monetização da base de clientes**
+- `/loja/clientes-base` — base de clientes da loja com filtros (cidade, rating, origem). Importa de uma `prospec_lista` ou cadastro manual (PJ/PF).
+- `/loja/catalogo-servicos` — 10 serviços digitais ativáveis (certidões federal/estadual/trabalhista/falência, cert digital A1, consulta CNPJ/sócios/compliance/score, clube de vantagens). Toggle on/off + preço custom. Margem da loja calculada automaticamente.
+- `/loja/comissoes` — ledger de receita: KPIs (mês, total, ticket médio, vendas/mês), últimas 50 transações, export CSV. API `POST /api/comissoes/registrar` registra venda automaticamente.
+
+### Próximas fases
+
+- **Sprint 3** — Diretório de profissionais (arquiteto/pedreiro/eletricista/etc) + programa de indicação 1 nível (código + ledger comissão).
+- **Sprint 4** — Disparo real (Cloud API Meta + Resend domain + IA marketing 24h).
+- **Fase 2** — APIs pagas plugadas (Serasa, SPC, Detran, Datavalid). Marketplace lojas concorrentes. Clube vantagens via white label (Allya/Lecupon). FIDC primeiros 3 adapters. MLM revendedor.
 
 ## Segurança
 

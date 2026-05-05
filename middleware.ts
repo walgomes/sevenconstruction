@@ -58,17 +58,24 @@ export function middleware(req: NextRequest) {
   }
 
   const cookie = req.cookies.get(COOKIE);
-  if (!cookie?.value) {
+  const cookieInvalido =
+    !cookie?.value || cookie.value.split(".").length !== 2 ||
+    !cookie.value.split(".")[0] || !cookie.value.split(".")[1];
+
+  if (cookieInvalido) {
+    // API: responder JSON 401 (clientes esperam JSON, nao redirect)
+    if (path.startsWith("/api/")) {
+      return aplicarHeaders(
+        new NextResponse(
+          JSON.stringify({ ok: false, motivo: "Não autenticado" }),
+          { status: 401, headers: { "content-type": "application/json" } },
+        ),
+      );
+    }
+    // Pagina: redirect pra /login com retorno
     const url = req.nextUrl.clone();
     url.pathname = "/login";
     if (path !== "/") url.searchParams.set("redirect", path);
-    return aplicarHeaders(NextResponse.redirect(url));
-  }
-
-  const partes = cookie.value.split(".");
-  if (partes.length !== 2 || !partes[0] || !partes[1]) {
-    const url = req.nextUrl.clone();
-    url.pathname = "/login";
     return aplicarHeaders(NextResponse.redirect(url));
   }
 
