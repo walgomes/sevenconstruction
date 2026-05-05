@@ -42,7 +42,7 @@ export default function LicitacoesEstadoPage() {
   const [licitacoes, setLicitacoes] = useState<Licitacao[]>([]);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
-  const [ultimaBusca, setUltimaBusca] = useState<{ uf: string; total: number; desde: string } | null>(null);
+  const [ultimaBusca, setUltimaBusca] = useState<{ uf: string; total: number; desde: string; fonte?: string; cache_idade_h?: number | null } | null>(null);
 
   const buscar = useCallback(async () => {
     setCarregando(true);
@@ -62,7 +62,7 @@ export default function LicitacoesEstadoPage() {
         return;
       }
       setLicitacoes(j.licitacoes);
-      setUltimaBusca({ uf: j.uf, total: j.total, desde: j.desde });
+      setUltimaBusca({ uf: j.uf, total: j.total, desde: j.desde, fonte: j.fonte, cache_idade_h: j.cache_idade_h });
     } catch {
       setErro("Erro de rede");
     } finally {
@@ -150,10 +150,25 @@ export default function LicitacoesEstadoPage() {
       )}
 
       {ultimaBusca && !carregando && (
-        <p className="mt-4 text-xs text-zinc-500">
-          {ultimaBusca.total} licitações vencidas em <strong>{ultimaBusca.uf}</strong> desde{" "}
-          {fmtData(ultimaBusca.desde)}
-        </p>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <p className="text-xs text-zinc-500">
+            {ultimaBusca.total} licitações em <strong>{ultimaBusca.uf}</strong> desde{" "}
+            {fmtData(ultimaBusca.desde)}
+          </p>
+          {ultimaBusca.fonte === "cache_fallback" && (
+            <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs text-amber-300">
+              ⚠️ Supabase lento — exibindo cache local{" "}
+              {ultimaBusca.cache_idade_h != null
+                ? `de ${Math.round(ultimaBusca.cache_idade_h)}h atrás`
+                : ""}
+            </span>
+          )}
+          {ultimaBusca.fonte === "supabase" && (
+            <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-300">
+              ✓ Dados ao vivo
+            </span>
+          )}
+        </div>
       )}
 
       <section className="mt-4 space-y-3">

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { lerSessao } from "@/lib/auth";
 import {
-  buscarLicitacoesVencidasPorUf,
-  enriquecerVencedoresComContato,
+  buscarLicitacoesEnriquecidas,
   type FiltroLicitacoes,
 } from "@/lib/licitacoes";
 import pool from "@/lib/db";
@@ -15,7 +14,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, motivo: "Não autenticado" }, { status: 401 });
   }
 
-  // Pega UF da loja como default
   const r = await pool.query(
     `SELECT uf FROM sevenconstruction.lojas WHERE id = $1`,
     [sessao.loja_id],
@@ -32,7 +30,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const dias = parseInt(url.searchParams.get("dias") || "30", 10);
+  const dias = parseInt(url.searchParams.get("dias") || "90", 10);
   const desde = new Date(Date.now() - Math.max(1, Math.min(dias, 365)) * 86400_000)
     .toISOString().slice(0, 10);
   const termo = url.searchParams.get("termo") || undefined;
@@ -42,27 +40,25 @@ export async function GET(req: NextRequest) {
     uf,
     desde,
     termo,
-    limite: Math.min(Math.max(limite, 1), 500),
+    limite: Math.min(Math.max(limite, 1), 200),
   };
 
   try {
-    const lits = await buscarLicitacoesVencidasPorUf(filtro);
-    const enriq = await enriquecerVencedoresComContato(lits);
+    const r = await buscarLicitacoesEnriquecidas(filtro);
     return NextResponse.json({
       ok: true,
       uf,
       desde,
-      total: enriq.length,
-      licitacoes: enriq,
+      total: r.licitacoes.length,
+      fonte: r.fonte,
+      cache_idade_h: r.cache_idade_h,
+      licitacoes: r.licitacoes,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    console.error("[licitacoes-estado] erro:", msg);
-    const detalhe = /timeout|canceling/i.test(msg)
-      ? "Supabase do SevenLicite respondeu lento agora. Tente novamente em alguns segundos."
-      : "Falha ao buscar licitações.";
+    console.error("[licitacoes-estado] erro fatal:", msg);
     return NextResponse.json(
-      { ok: false, motivo: detalhe },
+      { ok: false, motivo: "Falha total ao buscar licitações" },
       { status: 503 },
     );
   }
