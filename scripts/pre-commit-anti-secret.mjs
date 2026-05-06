@@ -13,7 +13,9 @@ import { execSync } from "node:child_process";
 
 const PATTERNS = [
   // Arquivos
-  { name: ".env files",          re: /^\.env(\.|$)/m,                               kind: "filename" },
+  // Bloqueia .env, .env.local, .env.production etc — mas permite templates publicos
+  // sem secrets reais (.env.example, .env.sample, .env.template).
+  { name: ".env files",          re: /^\.env(?!\.(?:example|sample|template)$)(\.|$)/m, kind: "filename" },
   // Tokens
   { name: "JWT (eyJ...)",        re: /eyJ[A-Za-z0-9_-]{30,}\.[A-Za-z0-9_-]{30,}\./, kind: "diff" },
   { name: "Stripe key",          re: /\bsk_(live|test)_[A-Za-z0-9]{20,}\b/,         kind: "diff" },

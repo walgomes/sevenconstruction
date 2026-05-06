@@ -14,7 +14,11 @@ export const runtime = "nodejs";
 export async function POST(req: NextRequest) {
   const apiKey = req.headers.get("x-sc-admin-key");
   const expected = process.env.SC_ADMIN_API_KEY;
-  const isAdmin = apiKey && expected && apiKey === expected;
+  const bearer = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  const cronSecret = process.env.CRON_SECRET;
+  const isAdmin =
+    (apiKey && expected && apiKey === expected) ||
+    (bearer && cronSecret && bearer === cronSecret);
 
   if (!isAdmin) {
     const sessao = await lerSessao();

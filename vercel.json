@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/disparo/processar?batch=50",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/disparo/ia-gerar",
+      "schedule": "0 3 * * *"
+    }
+  ]
+}
