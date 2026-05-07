@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { lerSessao } from "@/lib/auth";
 import pool from "@/lib/db";
+import TileAdmin from "./TileAdmin";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,18 @@ export default async function PainelLoja() {
   if (!sessao || sessao.role !== "loja_user" || !sessao.loja_id) {
     redirect("/login");
   }
+
+  // Verifica se o email do loja_user atual também tem conta super-admin.
+  // Só assim o tile Admin aparece — defesa em profundidade visual.
+  const ehAdmin = await pool.query<{ existe: boolean }>(
+    `SELECT EXISTS (
+       SELECT 1 FROM sevenconstruction.super_admins sa
+       JOIN sevenconstruction.loja_users lu ON LOWER(lu.email) = LOWER(sa.email)
+       WHERE lu.id = $1 AND sa.ativo
+     ) AS existe`,
+    [sessao.id],
+  );
+  const podeVerTileAdmin = ehAdmin.rows[0]?.existe ?? false;
 
   const r = await pool.query(
     `SELECT loja_id, nome_fantasia, cidade, uf, plano,
@@ -68,6 +81,7 @@ export default async function PainelLoja() {
           <TileLink href="/loja/marketplace" titulo="Marketplace lojas parceiras" status="esqueleto" />
           <TileLink href="/loja/revendedores" titulo="Revendedores multi-nível" status="esqueleto" />
           <TileLink href="/loja/perfil" titulo="⚙️ Editar perfil da loja" status="ativo" />
+          {podeVerTileAdmin && <TileAdmin />}
         </ul>
       </section>
 
