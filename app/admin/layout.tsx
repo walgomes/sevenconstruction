@@ -33,6 +33,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             <Link href="/admin/parceiros" className="rounded px-3 py-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100">
               Parceiros
             </Link>
+            <Link href="/admin/skus" className="rounded px-3 py-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100">
+              Catálogo
+            </Link>
             <form action="/api/auth/logout" method="POST" className="ml-2">
               <button className="rounded px-3 py-1.5 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200">
                 Sair

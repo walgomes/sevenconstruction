@@ -6,6 +6,8 @@ import pool from "@/lib/db";
 import AcoesParceiro from "./AcoesParceiro";
 import DocsParceiro from "./DocsParceiro";
 import BotaoGeocodificar from "./BotaoGeocodificar";
+import SkusParceiro from "./SkusParceiro";
+import { listarSkus } from "@/lib/skus";
 
 export const dynamic = "force-dynamic";
 
@@ -14,11 +16,12 @@ export default async function ParceiroDetalhe({ params }: { params: Promise<{ id
   const n = Number(id);
   if (!Number.isFinite(n)) notFound();
 
-  const [p, log, docsRow, similares] = await Promise.all([
+  const [p, log, docsRow, similares, skus] = await Promise.all([
     lerParceiro(n),
     listarLog(n, 30),
     pool.query(`SELECT * FROM sevenconstruction.parceiros_docs WHERE parceiro_id = $1 ORDER BY criado_em DESC`, [n]),
     lookalike(n, 8),
+    listarSkus(n),
   ]);
   if (!p) notFound();
 
@@ -182,6 +185,9 @@ export default async function ParceiroDetalhe({ params }: { params: Promise<{ id
           </ul>
         </section>
       )}
+
+      {/* Catálogo de SKUs */}
+      <SkusParceiro id={p.id} skusIniciais={skus} />
 
       {/* Documentos */}
       <DocsParceiro id={p.id} docsIniciais={docsRow.rows as Doc[]} />
