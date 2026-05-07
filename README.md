@@ -1,5 +1,7 @@
 # SevenConstruction
 
+[![build](https://github.com/walgomes/sevenconstruction/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/walgomes/sevenconstruction/actions/workflows/build.yml)
+
 SaaS standalone para lojas de material de construção. Prospecção geo do bairro, crédito no checkout, FIDC, seguros, certidões e fidelização — num único lugar.
 
 ## Stack
