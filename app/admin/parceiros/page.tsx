@@ -1,14 +1,19 @@
 import Link from "next/link";
 import {
   lerKpis,
+  lerDashboardSrm,
   listarParceiros,
   listarUfs,
   TIPOS_PARCEIRO,
   type TipoParceiro,
   type Parceiro,
 } from "@/lib/parceiros";
+import KanbanView from "./KanbanView";
+import AnalisarLoteBtn from "./AnalisarLoteBtn";
 
 export const dynamic = "force-dynamic";
+
+type Vista = "cards" | "tabela" | "kanban";
 
 type SearchParams = Promise<{
   vista?: string;
@@ -21,7 +26,8 @@ type SearchParams = Promise<{
 
 export default async function ParceirosPage({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
-  const vista: "cards" | "tabela" = sp.vista === "tabela" ? "tabela" : "cards";
+  const vista: Vista =
+    sp.vista === "tabela" ? "tabela" : sp.vista === "kanban" ? "kanban" : "cards";
 
   const tipo = TIPOS_PARCEIRO.find((t) => t.valor === sp.tipo)?.valor;
   const uf = sp.uf?.toUpperCase().slice(0, 2);
@@ -33,13 +39,14 @@ export default async function ParceirosPage({ searchParams }: { searchParams: Se
     produto: sp.produto?.trim() || undefined,
   };
 
-  const [k, parceiros, ufs] = await Promise.all([
+  const [k, parceiros, ufs, srm] = await Promise.all([
     lerKpis(),
-    listarParceiros({ ...filtros, limite: 200 }),
+    listarParceiros({ ...filtros, limite: vista === "kanban" ? 1000 : 200 }),
     listarUfs(),
+    lerDashboardSrm(),
   ]);
 
-  function hrefVista(v: "cards" | "tabela"): string {
+  function hrefVista(v: Vista): string {
     const params = new URLSearchParams();
     if (filtros.tipo) params.set("tipo", filtros.tipo);
     if (filtros.uf) params.set("uf", filtros.uf);
@@ -61,6 +68,7 @@ export default async function ParceirosPage({ searchParams }: { searchParams: Se
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <AnalisarLoteBtn />
           <Link
             href="/admin/parceiros/novo"
             className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100 hover:border-zinc-500"
@@ -85,7 +93,9 @@ export default async function ParceirosPage({ searchParams }: { searchParams: Se
         hrefVista={hrefVista}
       />
 
-      {parceiros.length === 0 ? (
+      {vista === "kanban" ? (
+        <KanbanView parceiros={parceiros} kpisSrm={srm.kpis} />
+      ) : parceiros.length === 0 ? (
         <Vazio />
       ) : vista === "cards" ? (
         <GradeCards parceiros={parceiros} />
@@ -125,8 +135,8 @@ function FiltrosBar({
 }: {
   ufs: string[];
   filtros: { tipo?: TipoParceiro; uf?: string; busca?: string; cnae?: string; produto?: string };
-  vista: "cards" | "tabela";
-  hrefVista: (v: "cards" | "tabela") => string;
+  vista: Vista;
+  hrefVista: (v: Vista) => string;
 }) {
   return (
     <section className="mt-5 flex flex-wrap items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/30 p-3">
@@ -176,32 +186,31 @@ function FiltrosBar({
       </form>
 
       <div className="flex items-center gap-1 rounded-md border border-zinc-700 bg-zinc-950/40 p-0.5">
-        <Link
-          href={hrefVista("cards")}
-          className={`flex items-center gap-1.5 rounded px-2 py-1 text-xs ${
-            vista === "cards"
-              ? "bg-rose-600 text-white"
-              : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
-          }`}
-          title="Visualizar como cards"
-        >
-          <IconeCards />
-          <span className="hidden sm:inline">Cards</span>
-        </Link>
-        <Link
-          href={hrefVista("tabela")}
-          className={`flex items-center gap-1.5 rounded px-2 py-1 text-xs ${
-            vista === "tabela"
-              ? "bg-rose-600 text-white"
-              : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
-          }`}
-          title="Visualizar como tabela"
-        >
-          <IconeTabela />
-          <span className="hidden sm:inline">Tabela</span>
-        </Link>
+        <ToggleVista vista={vista} alvo="cards" hrefVista={hrefVista} icone={<IconeCards />} label="Cards" />
+        <ToggleVista vista={vista} alvo="tabela" hrefVista={hrefVista} icone={<IconeTabela />} label="Tabela" />
+        <ToggleVista vista={vista} alvo="kanban" hrefVista={hrefVista} icone={<IconeKanban />} label="Kanban" />
       </div>
     </section>
+  );
+}
+
+function ToggleVista({
+  vista, alvo, hrefVista, icone, label,
+}: {
+  vista: Vista; alvo: Vista; hrefVista: (v: Vista) => string; icone: React.ReactNode; label: string;
+}) {
+  const ativo = vista === alvo;
+  return (
+    <Link
+      href={hrefVista(alvo)}
+      className={`flex items-center gap-1.5 rounded px-2 py-1 text-xs ${
+        ativo ? "bg-rose-600 text-white" : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+      }`}
+      title={`Visualizar como ${label.toLowerCase()}`}
+    >
+      {icone}
+      <span className="hidden sm:inline">{label}</span>
+    </Link>
   );
 }
 
@@ -223,6 +232,16 @@ function IconeTabela() {
       <path d="M3 9h18" />
       <path d="M3 14h18" />
       <path d="M9 4v16" />
+    </svg>
+  );
+}
+
+function IconeKanban() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+      <rect x="3" y="3" width="5" height="18" rx="1.5" />
+      <rect x="10" y="3" width="5" height="12" rx="1.5" />
+      <rect x="17" y="3" width="4" height="8" rx="1.5" />
     </svg>
   );
 }

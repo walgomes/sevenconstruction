@@ -40,7 +40,9 @@ function LoginInner() {
         setErro(j.motivo || "Falha no login");
         return;
       }
-      const dest = params.get("redirect") || "/loja";
+      const dest =
+        params.get("redirect") ||
+        (j.role === "super" ? "/admin" : "/loja");
       router.push(dest);
     } catch {
       setErro("Erro de rede");

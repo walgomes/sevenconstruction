@@ -184,3 +184,49 @@ async function registrarTentativa(p: {
     // nao bloqueia login se log falhar
   }
 }
+
+export type ResultadoLoginSuper =
+  | { ok: true; sessao: SessaoSc; nome: string }
+  | { ok: false; motivo: string };
+
+export async function loginSuperAdmin(
+  email: string,
+  senha: string,
+  meta: { ip: string | null; ua: string | null },
+): Promise<ResultadoLoginSuper> {
+  const emailNorm = email.trim().toLowerCase();
+  if (!emailNorm || !senha) {
+    return { ok: false, motivo: "Email e senha obrigatórios" };
+  }
+
+  const r = await pool.query(
+    `SELECT id, email, senha_hash, nome, ativo
+       FROM sevenconstruction.super_admins
+      WHERE email = $1 LIMIT 1`,
+    [emailNorm],
+  );
+  const row = r.rows[0];
+  if (!row) {
+    await registrarTentativa({ ...meta, email: emailNorm, papel: "super", loja_id: null, sucesso: false, motivo: "inexistente" });
+    return { ok: false, motivo: "Credenciais inválidas" };
+  }
+  if (!row.ativo) {
+    await registrarTentativa({ ...meta, email: emailNorm, papel: "super", loja_id: null, sucesso: false, motivo: "inativo" });
+    return { ok: false, motivo: "Usuário inativo" };
+  }
+
+  const ok = await checarHash(senha, row.senha_hash);
+  if (!ok) {
+    await registrarTentativa({ ...meta, email: emailNorm, papel: "super", loja_id: null, sucesso: false, motivo: "senha_errada" });
+    return { ok: false, motivo: "Credenciais inválidas" };
+  }
+
+  await pool.query(
+    `UPDATE sevenconstruction.super_admins SET ultimo_login = NOW() WHERE id = $1`,
+    [row.id],
+  );
+  await registrarTentativa({ ...meta, email: emailNorm, papel: "super", loja_id: null, sucesso: true, motivo: "ok" });
+
+  const token = gerarToken(row.id, "super", null);
+  return { ok: true, sessao: validarToken(token)!, nome: row.nome };
+}

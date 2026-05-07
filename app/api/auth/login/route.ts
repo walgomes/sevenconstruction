@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { loginLojaUser, gerarToken, setCookie } from "@/lib/auth";
+import { loginLojaUser, loginSuperAdmin, gerarToken, setCookie } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -40,6 +40,15 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // 1) Tenta super-admin primeiro (raro)
+  const rs = await loginSuperAdmin(email, senha, { ip, ua });
+  if (rs.ok) {
+    const token = gerarToken(rs.sessao.id, rs.sessao.role, null);
+    await setCookie(token);
+    return NextResponse.json({ ok: true, nome: rs.nome, loja_nome: null, role: "super" });
+  }
+
+  // 2) Senao, fluxo normal de loja_user
   const r = await loginLojaUser(email, senha, { ip, ua });
   if (!r.ok) {
     return NextResponse.json({ ok: false, motivo: r.motivo }, { status: 401 });
