@@ -1,0 +1,45 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancela jobs em duplicata se vier push novo no mesmo branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      # Build NAO conecta no banco — Next 16 dynamic="force-dynamic" garante
+      # que rotas com pool.query() sao server-rendered on demand.
+      # Mesmo assim, dummies evitam que algum import quebre por env vazio.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      SC_SECRET: ci-build-only-not-real-secret-1234567890
+      NODE_ENV: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install deps
+        run: npm ci --no-audit --prefer-offline
+
+      - name: Lint
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Build (Next 16 + tsc)
+        run: npm run build
