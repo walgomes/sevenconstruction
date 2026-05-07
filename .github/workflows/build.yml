@@ -22,7 +22,6 @@ jobs:
       # Mesmo assim, dummies evitam que algum import quebre por env vazio.
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
       SC_SECRET: ci-build-only-not-real-secret-1234567890
-      NODE_ENV: production
 
     steps:
       - name: Checkout
@@ -35,7 +34,11 @@ jobs:
           cache: "npm"
 
       - name: Install deps
+        # HUSKY=0 desliga o prepare script (husky 9 respeita); senao falha
+        # quando dev deps nao instalam (NODE_ENV=production no build step).
         run: npm ci --no-audit --prefer-offline
+        env:
+          HUSKY: "0"
 
       - name: Lint
         run: npm run lint
@@ -43,3 +46,5 @@ jobs:
 
       - name: Build (Next 16 + tsc)
         run: npm run build
+        env:
+          NODE_ENV: production
