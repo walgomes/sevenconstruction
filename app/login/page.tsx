@@ -40,9 +40,9 @@ function LoginInner() {
         setErro(j.motivo || "Falha no login");
         return;
       }
-      const dest =
-        params.get("redirect") ||
-        (j.role === "super" ? "/admin" : "/loja");
+      // super tambem entra primeiro no painel da loja — admin fica DENTRO
+      // (tile clicavel sem senha extra porque ja esta logado como super)
+      const dest = params.get("redirect") || "/loja";
       router.push(dest);
     } catch {
       setErro("Erro de rede");

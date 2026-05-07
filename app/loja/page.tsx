@@ -8,28 +8,47 @@ export const dynamic = "force-dynamic";
 
 export default async function PainelLoja() {
   const sessao = await lerSessao();
-  if (!sessao || sessao.role !== "loja_user" || !sessao.loja_id) {
+  if (!sessao) redirect("/login");
+
+  // Decide qual loja exibir + se mostra o tile Admin.
+  // - loja_user: usa sua propria loja; tile Admin so aparece se email tem
+  //   conta super_admins ativa (defesa em profundidade visual).
+  // - super: usa primeira loja ativa pra demo; tile Admin sempre visivel
+  //   (e sem modal — leva direto pra /admin porque ja esta logado como super).
+  let lojaIdRef: number | null = null;
+  let podeVerTileAdmin = false;
+  let superJaLogado = false;
+
+  if (sessao.role === "loja_user" && sessao.loja_id) {
+    lojaIdRef = sessao.loja_id;
+    const ehAdmin = await pool.query<{ existe: boolean }>(
+      `SELECT EXISTS (
+         SELECT 1 FROM sevenconstruction.super_admins sa
+         JOIN sevenconstruction.loja_users lu ON LOWER(lu.email) = LOWER(sa.email)
+         WHERE lu.id = $1 AND sa.ativo
+       ) AS existe`,
+      [sessao.id],
+    );
+    podeVerTileAdmin = ehAdmin.rows[0]?.existe ?? false;
+  } else if (sessao.role === "super") {
+    const lr = await pool.query<{ id: number }>(
+      `SELECT id FROM sevenconstruction.lojas WHERE ativo ORDER BY id ASC LIMIT 1`,
+    );
+    lojaIdRef = lr.rows[0]?.id ?? null;
+    podeVerTileAdmin = true;
+    superJaLogado = true;
+  } else {
     redirect("/login");
   }
 
-  // Verifica se o email do loja_user atual também tem conta super-admin.
-  // Só assim o tile Admin aparece — defesa em profundidade visual.
-  const ehAdmin = await pool.query<{ existe: boolean }>(
-    `SELECT EXISTS (
-       SELECT 1 FROM sevenconstruction.super_admins sa
-       JOIN sevenconstruction.loja_users lu ON LOWER(lu.email) = LOWER(sa.email)
-       WHERE lu.id = $1 AND sa.ativo
-     ) AS existe`,
-    [sessao.id],
-  );
-  const podeVerTileAdmin = ehAdmin.rows[0]?.existe ?? false;
+  if (!lojaIdRef) redirect("/login");
 
   const r = await pool.query(
     `SELECT loja_id, nome_fantasia, cidade, uf, plano,
             clientes_ativos, clientes_verdes, usuarios_ativos, listas_prospec
        FROM sevenconstruction.v_loja_resumo
       WHERE loja_id = $1`,
-    [sessao.loja_id],
+    [lojaIdRef],
   );
   const resumo = r.rows[0] || {
     nome_fantasia: "Sua loja",
@@ -81,7 +100,7 @@ export default async function PainelLoja() {
           <TileLink href="/loja/marketplace" titulo="Marketplace lojas parceiras" status="esqueleto" />
           <TileLink href="/loja/revendedores" titulo="Revendedores multi-nível" status="esqueleto" />
           <TileLink href="/loja/perfil" titulo="⚙️ Editar perfil da loja" status="ativo" />
-          {podeVerTileAdmin && <TileAdmin />}
+          {podeVerTileAdmin && <TileAdmin superJaLogado={superJaLogado} />}
         </ul>
       </section>
 

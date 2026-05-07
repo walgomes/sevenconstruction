@@ -1,10 +1,25 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-export default function TileAdmin() {
+export default function TileAdmin({ superJaLogado = false }: { superJaLogado?: boolean }) {
   const router = useRouter();
+  // Se ja esta logado como super, vai direto sem pedir senha de novo
+  if (superJaLogado) {
+    return (
+      <Link
+        href="/admin"
+        className="flex items-center justify-between rounded-lg border border-rose-700/40 bg-rose-950/20 px-4 py-3 transition hover:border-rose-500/60 hover:bg-rose-950/40"
+      >
+        <span className="text-sm">🔐 Parceiros — Admin</span>
+        <span className="rounded-full bg-rose-500/15 px-2 py-0.5 text-xs text-rose-300">
+          super
+        </span>
+      </Link>
+    );
+  }
   const [aberto, setAberto] = useState(false);
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState<string | null>(null);
