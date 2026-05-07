@@ -71,6 +71,10 @@ export type Parceiro = {
   recomendacao_motivo: string | null;
   homologado_em: string | null;
   ultima_analise_em: string | null;
+  // Geo
+  lat: number | null;
+  lng: number | null;
+  geocoded_em: string | null;
 };
 
 export type ParceirosKpis = {

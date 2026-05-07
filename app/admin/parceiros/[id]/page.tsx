@@ -5,6 +5,7 @@ import { TIPOS_PARCEIRO, FASES_HOMOLOG } from "@/lib/parceiros-tipos";
 import pool from "@/lib/db";
 import AcoesParceiro from "./AcoesParceiro";
 import DocsParceiro from "./DocsParceiro";
+import BotaoGeocodificar from "./BotaoGeocodificar";
 
 export const dynamic = "force-dynamic";
 
@@ -78,6 +79,24 @@ export default async function ParceiroDetalhe({ params }: { params: Promise<{ id
           <Linha rotulo="Cidade" valor={p.cidade ?? "—"} />
           <Linha rotulo="Endereço" valor={p.endereco ?? "—"} />
           <Linha rotulo="CEP" valor={p.cep ? formatarCep(p.cep) : "—"} mono />
+          <Linha
+            rotulo="Coordenadas"
+            valor={
+              p.lat && p.lng ? (
+                <a
+                  href={`https://www.google.com/maps?q=${p.lat},${p.lng}`}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="font-mono text-rose-300 hover:underline"
+                >
+                  {Number(p.lat).toFixed(4)}, {Number(p.lng).toFixed(4)}
+                </a>
+              ) : "—"
+            }
+          />
+          <div className="pt-1">
+            <BotaoGeocodificar id={p.id} temCep={!!p.cep} temCoords={p.lat != null && p.lng != null} />
+          </div>
         </Bloco>
 
         <Bloco titulo="Contato">

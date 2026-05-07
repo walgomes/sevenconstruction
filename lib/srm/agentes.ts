@@ -5,6 +5,8 @@
 
 import { rfbQuery } from "@/lib/rfb-db";
 import { buscarDadosEmpresa, buscarSocios, lerCompliance } from "@/lib/consulta-cnpj";
+import { geocodificarCep, distanciaKm, type Coords } from "@/lib/geocoding";
+import pool from "@/lib/db";
 import type { Parceiro, RiscoInicial } from "@/lib/parceiros-tipos";
 
 // ===== Pre Check AI =====
@@ -141,22 +143,80 @@ export async function financeAI(p: Parceiro, preCheck?: Awaited<ReturnType<typeo
 }
 
 // ===== Operacional AI =====
+//
+// Diferencial geo-aware: se o parceiro tem CEP, geocodifica e calcula
+// distancia ate o centroide das lojas ativas. Distancia <100km otimo,
+// 100-500km medio, >500km penaliza (logistica encarece).
 export async function operacionalAI(p: Parceiro) {
   const flags: string[] = [];
   let pontos = 0;
-  if (p.telefone)  pontos += 5; else flags.push("Sem telefone");
-  if (p.whatsapp)  pontos += 5; else flags.push("Sem WhatsApp");
-  if (p.site)      pontos += 5; else flags.push("Sem site");
-  if (p.email)     pontos += 5; else flags.push("Sem email");
-  if (p.endereco)  pontos += 5; else flags.push("Sem endereco completo");
-  if (p.uf && p.cidade) pontos += 5; else flags.push("UF/cidade incompletos");
-  // 30 max
+  if (p.telefone)  pontos += 4; else flags.push("Sem telefone");
+  if (p.whatsapp)  pontos += 4; else flags.push("Sem WhatsApp");
+  if (p.site)      pontos += 4; else flags.push("Sem site");
+  if (p.email)     pontos += 4; else flags.push("Sem email");
+  if (p.endereco)  pontos += 4; else flags.push("Sem endereco completo");
+  if (p.uf && p.cidade) pontos += 4; else flags.push("UF/cidade incompletos");
+  // 24 max acima
+
+  // Geo (6 max)
+  let geo: {
+    coords: Coords | null;
+    centroide_lojas: Coords | null;
+    distancia_km: number | null;
+    bandeira: "perto" | "medio" | "longe" | "indeterminado";
+  } = { coords: null, centroide_lojas: null, distancia_km: null, bandeira: "indeterminado" };
+
+  let coords: Coords | null = p.lat != null && p.lng != null ? { lat: Number(p.lat), lng: Number(p.lng) } : null;
+  if (!coords && p.cep) {
+    coords = await geocodificarCep(p.cep);
+    if (coords) {
+      // Persiste pra evitar re-consulta
+      await pool.query(
+        `UPDATE sevenconstruction.parceiros SET lat=$1, lng=$2, geocoded_em=NOW() WHERE id=$3`,
+        [coords.lat, coords.lng, p.id],
+      );
+    }
+  }
+
+  if (coords) {
+    geo.coords = coords;
+    const centroide = await centroideLojas();
+    geo.centroide_lojas = centroide;
+    if (centroide) {
+      const dist = distanciaKm(coords, centroide);
+      geo.distancia_km = Math.round(dist * 10) / 10;
+      if (dist <= 100)      { geo.bandeira = "perto"; pontos += 6; }
+      else if (dist <= 500) { geo.bandeira = "medio"; pontos += 3; flags.push(`Distancia ${dist.toFixed(0)}km da rede`); }
+      else                  { geo.bandeira = "longe"; flags.push(`Distancia ${dist.toFixed(0)}km da rede (encarece logistica)`); }
+    } else {
+      pontos += 3; // tem coord mas sem rede pra comparar — neutro
+    }
+  } else if (p.cep) {
+    flags.push("CEP existe mas nao geocodificavel");
+  } else {
+    flags.push("Sem CEP — geo nao avaliada");
+  }
+
   return {
     pontos_contato: pontos,
     max: 30,
     completude: Math.round((pontos / 30) * 100),
+    geo,
     flags,
   };
+}
+
+// Calcula centroide simples (media lat/lng) das lojas ativas com coords.
+// Cache nao-persistente vai existir naturalmente (proximo deploy resetará).
+async function centroideLojas(): Promise<Coords | null> {
+  const r = await pool.query<{ lat: number; lng: number }>(
+    `SELECT AVG(lat)::float AS lat, AVG(lng)::float AS lng
+       FROM sevenconstruction.lojas
+      WHERE ativo AND lat IS NOT NULL AND lng IS NOT NULL`,
+  );
+  const row = r.rows[0];
+  if (!row || row.lat == null || row.lng == null) return null;
+  return { lat: row.lat, lng: row.lng };
 }
 
 // ===== Legal AI =====
