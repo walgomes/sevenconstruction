@@ -4,6 +4,7 @@
 //        Se token bater com META_WEBHOOK_VERIFY_TOKEN, devolvemos challenge em texto puro.
 // POST — eventos: payload com entry[].changes[].value.statuses[] (sent, delivered, read, failed)
 //        ou entry[].changes[].value.messages[] (mensagem inbound — fora de escopo aqui).
+//        Autenticidade via header x-hub-signature-256 = "sha256=" + HMAC-SHA256(rawBody, META_APP_SECRET).
 //
 // Configurar no Meta Business Manager > WhatsApp > Configuration > Webhook:
 //   URL    : https://<dominio>/api/disparo/webhook/meta
@@ -11,6 +12,7 @@
 //   Eventos: subscribe a "messages" (cobre statuses)
 
 import { NextRequest, NextResponse } from "next/server";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import pool from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -56,9 +58,26 @@ type MetaWebhookBody = {
 };
 
 export async function POST(req: NextRequest) {
+  const raw = await req.text();
+
+  // Verificacao HMAC: Meta assina o body com META_APP_SECRET (App Settings > Basic).
+  // Se nao configurado, log warning e segue (DEV) — em prod o env var DEVE estar setado.
+  const appSecret = process.env.META_APP_SECRET;
+  if (appSecret) {
+    const sigHeader = req.headers.get("x-hub-signature-256");
+    if (!sigHeader || !verificarMetaSignature(appSecret, raw, sigHeader)) {
+      return NextResponse.json({ ok: false, motivo: "assinatura invalida" }, { status: 401 });
+    }
+  } else if (process.env.NODE_ENV === "production") {
+    console.error("[webhook/meta] META_APP_SECRET nao configurado em producao — rejeitando");
+    return NextResponse.json({ ok: false, motivo: "config" }, { status: 500 });
+  } else {
+    console.warn("[webhook/meta] META_APP_SECRET nao configurado — aceitando sem verificar (DEV)");
+  }
+
   let body: MetaWebhookBody;
   try {
-    body = await req.json();
+    body = JSON.parse(raw);
   } catch {
     return NextResponse.json({ ok: false }, { status: 400 });
   }
@@ -129,5 +148,19 @@ function mapearStatus(s: MetaStatus["status"]): string {
     case "read": return "aberto";
     case "failed": return "falhou";
     default: return "enviado";
+  }
+}
+
+function verificarMetaSignature(secret: string, raw: string, header: string): boolean {
+  // Header tem formato "sha256=<hex>"
+  const idx = header.indexOf("=");
+  if (idx < 0) return false;
+  const hexRecebido = header.slice(idx + 1);
+  const hexEsperado = createHmac("sha256", secret).update(raw, "utf8").digest("hex");
+  if (hexRecebido.length !== hexEsperado.length) return false;
+  try {
+    return timingSafeEqual(Buffer.from(hexRecebido, "hex"), Buffer.from(hexEsperado, "hex"));
+  } catch {
+    return false;
   }
 }

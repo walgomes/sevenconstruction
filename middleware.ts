@@ -10,6 +10,10 @@ const ROTAS_PUBLICAS = new Set([
   "/api/auth/login",
   "/api/auth/logout",
   "/api/disparo/unsubscribe",  // LGPD: descadastro publico (rate limit por IP no handler)
+  // Webhooks de provedores externos (Meta/Resend). Autenticidade verificada
+  // dentro do handler — Meta via x-hub-signature-256, Resend via Svix.
+  "/api/disparo/webhook/meta",
+  "/api/disparo/webhook/resend",
 ]);
 
 // CSP em prod tem upgrade-insecure-requests; em dev removemos pra não brigar
