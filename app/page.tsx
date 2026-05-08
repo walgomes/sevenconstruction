@@ -10,12 +10,20 @@ export default function Landing() {
             Seven<span className="text-amber-400">Construction</span>
           </span>
         </div>
-        <Link
-          href="/login"
-          className="rounded-md bg-amber-500 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-amber-400"
-        >
-          Entrar
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/login"
+            className="rounded-md border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-200 hover:bg-zinc-900"
+          >
+            Entrar
+          </Link>
+          <Link
+            href="/cadastrar"
+            className="rounded-md bg-amber-500 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-amber-400"
+          >
+            Criar conta grátis
+          </Link>
+        </div>
       </header>
 
       <section className="mt-16">
@@ -30,14 +38,20 @@ export default function Landing() {
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
-            href="/login"
+            href="/cadastrar"
             className="rounded-md bg-amber-500 px-5 py-3 font-medium text-zinc-950 hover:bg-amber-400"
           >
-            Acessar painel da loja
+            🚀 Criar conta grátis (14 dias)
+          </Link>
+          <Link
+            href="/login"
+            className="rounded-md border border-zinc-700 px-5 py-3 font-medium text-zinc-200 hover:bg-zinc-900"
+          >
+            Já tenho conta
           </Link>
           <a
             href="#beneficios"
-            className="rounded-md border border-zinc-700 px-5 py-3 font-medium text-zinc-200 hover:bg-zinc-900"
+            className="rounded-md border border-zinc-800 px-5 py-3 font-medium text-zinc-400 hover:text-zinc-200"
           >
             Como funciona
           </a>

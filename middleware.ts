@@ -17,9 +17,11 @@ const PASS_PREFIX = [
 const ROTAS_PUBLICAS = new Set([
   "/",
   "/login",
+  "/cadastrar",
   "/termos",
   "/api/auth/login",
   "/api/auth/logout",
+  "/api/auth/cadastrar",
   "/api/disparo/unsubscribe",  // LGPD: descadastro publico (rate limit por IP no handler)
   // Webhooks de provedores externos (Meta/Resend). Autenticidade verificada
   // dentro do handler — Meta via x-hub-signature-256, Resend via Svix.

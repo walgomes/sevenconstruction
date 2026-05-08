@@ -116,8 +116,10 @@ function LoginInner() {
       </form>
 
       <p className="mt-6 text-xs text-zinc-500">
-        Não tem conta? Fale com o administrador da plataforma para cadastrar
-        sua loja.
+        Não tem conta?{" "}
+        <Link href="/cadastrar" className="text-amber-400 hover:underline">
+          Cadastre sua loja grátis (14d trial)
+        </Link>
       </p>
     </main>
   );
