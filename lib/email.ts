@@ -127,6 +127,28 @@ export function tplReciboPagamento(opts: { nome: string; valor_brl: string; peri
   };
 }
 
+export function tplConvite(opts: {
+  nome_loja: string;
+  papel: string;
+  link: string;
+  convidado_por: string;
+  expira_dias: number;
+}): { assunto: string; html: string; text: string } {
+  const html = envelopar(`
+    <span class="logo">Seven<span style="color:white">Construction</span></span>
+    <h1>Você foi convidado pra equipe ${escape(opts.nome_loja)} 👋</h1>
+    <p><strong>${escape(opts.convidado_por)}</strong> te convidou pra entrar como <strong>${escape(opts.papel)}</strong> na loja <strong>${escape(opts.nome_loja)}</strong>.</p>
+    <a class="btn" href="${opts.link}">Aceitar convite e criar minha conta →</a>
+    <p>Esse link vale <strong>${opts.expira_dias} dias</strong>. Se foi engano, ignore.</p>
+    <p style="font-size: 12px; color: #71717a;">Link manual:<br><span class="codigo">${opts.link}</span></p>
+  `);
+  return {
+    assunto: `Convite: equipe da ${opts.nome_loja}`,
+    html,
+    text: `${opts.convidado_por} te convidou pra equipe da ${opts.nome_loja} como ${opts.papel}.\n\nAceite em: ${opts.link}\n(válido por ${opts.expira_dias} dias)`,
+  };
+}
+
 export function tplFaturaVencida(opts: { nome: string; nome_loja: string; valor_brl: string; link_portal: string }): { assunto: string; html: string; text: string } {
   const html = envelopar(`
     <span class="logo">Seven<span style="color:white">Construction</span></span>

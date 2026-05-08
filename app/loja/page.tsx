@@ -104,6 +104,7 @@ export default async function PainelLoja() {
           <TileLink href="/loja/lookalike" titulo="🎯 Lookalike de carteira" status="ativo" />
           <TileLink href="/loja/fidelizacao" titulo="🎁 Fidelização (Clube de pontos)" status="ativo" />
           <TileLink href="/loja/billing" titulo="💳 Plano e cobrança" status="ativo" />
+          <TileLink href="/loja/equipe" titulo="👥 Equipe (usuários da loja)" status="ativo" />
           <TileLink href="/loja/perfil" titulo="⚙️ Editar perfil da loja" status="ativo" />
           {podeVerTileAdmin && <TileAdmin superJaLogado={superJaLogado} />}
         </ul>
