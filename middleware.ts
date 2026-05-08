@@ -2,7 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 
 const COOKIE = "sc_auth";
 
-const PASS_PREFIX = ["/_next", "/favicon", "/images", "/fonts", "/robots", "/sitemap", "/r/"];
+const PASS_PREFIX = [
+  "/_next", "/favicon", "/images", "/fonts", "/robots", "/sitemap", "/r/",
+  // PWA cliente final tem auth propria (cookie sc_cliente_auth) validada
+  // dentro dos handlers — middleware nao mexe.
+  "/cliente",
+  "/api/cliente/",
+  "/manifest.webmanifest",
+  "/sw.js",
+  "/icon-",
+];
 const ROTAS_PUBLICAS = new Set([
   "/",
   "/login",
