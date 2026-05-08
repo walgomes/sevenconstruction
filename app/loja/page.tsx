@@ -101,6 +101,7 @@ export default async function PainelLoja() {
           <TileLink href="/loja/revendedores" titulo="Revendedores multi-nível" status="esqueleto" />
           <TileLink href="/loja/rede-b2b" titulo="🌐 Rede B2B (matches + conversas)" status="ativo" />
           <TileLink href="/loja/empresas-brasileiras" titulo="🏢 Empresas brasileiras (21 setores)" status="ativo" />
+          <TileLink href="/loja/lookalike" titulo="🎯 Lookalike de carteira" status="ativo" />
           <TileLink href="/loja/perfil" titulo="⚙️ Editar perfil da loja" status="ativo" />
           {podeVerTileAdmin && <TileAdmin superJaLogado={superJaLogado} />}
         </ul>
