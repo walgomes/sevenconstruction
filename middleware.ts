@@ -11,6 +11,8 @@ const PASS_PREFIX = [
   "/manifest.webmanifest",
   "/sw.js",
   "/icon-",
+  // Webhook Stripe — autenticidade via x-stripe-signature dentro do handler
+  "/api/billing/webhook",
 ];
 const ROTAS_PUBLICAS = new Set([
   "/",
