@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs";
 import { gerarToken, setCookie } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import pool from "@/lib/db";
+import { enviarEmail, tplBoasVindas } from "@/lib/email";
 
 export const runtime = "nodejs";
 
@@ -143,6 +144,10 @@ export async function POST(req: NextRequest) {
     // 4) Auto-login
     const token = gerarToken(userId, "loja_user", lojaId);
     await setCookie(token);
+
+    // 5) Email de boas-vindas (best-effort — nao bloqueia cadastro)
+    const tpl = tplBoasVindas({ nome: nomeDono, nome_loja: nomeFantasia, trial_dias: 14 });
+    enviarEmail({ para: email, assunto: tpl.assunto, html: tpl.html, text: tpl.text }).catch(() => {});
 
     return NextResponse.json({
       ok: true,

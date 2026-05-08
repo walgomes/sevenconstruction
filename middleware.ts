@@ -18,10 +18,14 @@ const ROTAS_PUBLICAS = new Set([
   "/",
   "/login",
   "/cadastrar",
+  "/esqueci-senha",
+  "/redefinir-senha",
   "/termos",
   "/api/auth/login",
   "/api/auth/logout",
   "/api/auth/cadastrar",
+  "/api/auth/esqueci-senha",
+  "/api/auth/redefinir-senha",
   "/api/disparo/unsubscribe",  // LGPD: descadastro publico (rate limit por IP no handler)
   // Webhooks de provedores externos (Meta/Resend). Autenticidade verificada
   // dentro do handler — Meta via x-hub-signature-256, Resend via Svix.

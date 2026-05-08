@@ -13,6 +13,7 @@
 
 import Stripe from "stripe";
 import pool from "@/lib/db";
+import { enviarEmail, tplReciboPagamento, tplFaturaVencida } from "@/lib/email";
 
 let _stripe: Stripe | null = null;
 
@@ -221,6 +222,41 @@ export async function aplicarEventoStripe(event: Stripe.Event): Promise<void> {
       valor_centavos = inv.amount_paid;
       moeda = inv.currency;
       status = inv.status ?? null;
+
+      // Email transacional (best-effort)
+      if (loja_id) {
+        const lojaInfo = await pool.query<{ nome_fantasia: string; nome_dono: string; email: string }>(
+          `SELECT l.nome_fantasia,
+                  COALESCE(u.nome, l.nome_fantasia) AS nome_dono,
+                  COALESCE(u.email, l.email_contato) AS email
+             FROM sevenconstruction.lojas l
+             LEFT JOIN sevenconstruction.loja_users u ON u.loja_id = l.id AND u.papel = 'dono'
+            WHERE l.id = $1 LIMIT 1`,
+          [loja_id],
+        );
+        const info = lojaInfo.rows[0];
+        if (info?.email) {
+          if (event.type === "invoice.payment_succeeded" && inv.status === "paid") {
+            const valorBrl = ((inv.amount_paid ?? 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+            const periodo = inv.lines.data[0]?.period;
+            const inicio = periodo?.start ? new Date(periodo.start * 1000).toLocaleDateString("pt-BR") : "—";
+            const fim = periodo?.end ? new Date(periodo.end * 1000).toLocaleDateString("pt-BR") : "—";
+            const tpl = tplReciboPagamento({
+              nome: info.nome_dono, valor_brl: valorBrl,
+              periodo_inicio: inicio, periodo_fim: fim, nome_loja: info.nome_fantasia,
+            });
+            enviarEmail({ para: info.email, assunto: tpl.assunto, html: tpl.html, text: tpl.text }).catch(() => {});
+          } else if (event.type === "invoice.payment_failed") {
+            const valorBrl = ((inv.amount_due ?? 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+            const linkPortal = inv.hosted_invoice_url || "https://sevenconstruction.com.br/loja/billing";
+            const tpl = tplFaturaVencida({
+              nome: info.nome_dono, nome_loja: info.nome_fantasia,
+              valor_brl: valorBrl, link_portal: linkPortal,
+            });
+            enviarEmail({ para: info.email, assunto: tpl.assunto, html: tpl.html, text: tpl.text }).catch(() => {});
+          }
+        }
+      }
       break;
     }
   }

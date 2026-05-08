@@ -121,6 +121,12 @@ function LoginInner() {
           Cadastre sua loja grátis (14d trial)
         </Link>
       </p>
+      <p className="mt-2 text-xs text-zinc-500">
+        Esqueceu a senha?{" "}
+        <Link href="/esqueci-senha" className="text-amber-400 hover:underline">
+          Recuperar senha
+        </Link>
+      </p>
     </main>
   );
 }
