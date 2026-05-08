@@ -8,6 +8,7 @@
 //   indicacao: 50 pontos pra origem + 50 pra destino quando 1a compra >= R$ 50
 
 import pool from "@/lib/db";
+import { notificarSilencioso } from "@/lib/notificacoes";
 
 export const FATOR_COMPRA = 1;             // 1 ponto por R$ 1
 export const PONTO_VALOR_REAIS = 0.01;     // 1 ponto = R$ 0,01
@@ -218,6 +219,17 @@ async function liberarIndicacoesPendentes(cliente_destino: number, loja_id: numb
         WHERE id = $1`,
       [ind.id],
     );
+    // Notifica a loja
+    await notificarSilencioso({
+      loja_id,
+      tipo: "indicacao_paga",
+      titulo: `Indicação #${ind.id} liberou ${ind.recompensa_pontos * 2} pts`,
+      mensagem: `Indicado fez 1ª compra → +${ind.recompensa_pontos} pts pra origem + ${ind.recompensa_pontos} pts pra ele`,
+      link: `/loja/fidelizacao/${ind.cliente_origem}`,
+      icone: "🎁",
+      prioridade: 1,
+      metadados: { indicacao_id: ind.id },
+    });
   }
 }
 

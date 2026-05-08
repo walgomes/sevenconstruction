@@ -19,6 +19,7 @@
 
 import pool from "@/lib/db";
 import { distanciaKm } from "@/lib/geocoding";
+import { notificarSilencioso } from "@/lib/notificacoes";
 
 export const COMISSAO_PLATAFORMA_PCT = 1.5;
 
@@ -384,6 +385,18 @@ export async function criarTransacao(opts: {
     ).catch(() => {});
   }
 
+  // Notifica fornecedora que tem nova transacao pendente
+  await notificarSilencioso({
+    loja_id: oferta.loja_id,
+    tipo: "transacao_marketplace",
+    titulo: `Novo pedido B2B #${r.rows[0].id}`,
+    mensagem: `${opts.quantidade} ${oferta.produto} · ${valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`,
+    link: "/loja/marketplace",
+    icone: "💱",
+    prioridade: 2,
+    metadados: { transacao_id: r.rows[0].id, valor_total: valor },
+  });
+
   return {
     id: r.rows[0].id,
     loja_compradora: opts.loja_compradora,
@@ -409,13 +422,31 @@ const STATUS_VALIDOS = ["pendente", "aceita", "em_transito", "entregue", "cancel
 export async function mudarStatusTransacao(id: number, novo: string, loja_id_ator: number): Promise<boolean> {
   if (!STATUS_VALIDOS.includes(novo)) throw new Error("status invalido");
   // Permite mudanca apenas se o ator eh compradora ou fornecedora
-  const r = await pool.query(
+  const r = await pool.query<{
+    loja_compradora: number; loja_fornecedora: number; produto_snapshot: string | null;
+  }>(
     `UPDATE sevenconstruction.b2b_transacao
         SET status = $1
-      WHERE id = $2 AND (loja_compradora = $3 OR loja_fornecedora = $3)`,
+      WHERE id = $2 AND (loja_compradora = $3 OR loja_fornecedora = $3)
+      RETURNING loja_compradora, loja_fornecedora, produto_snapshot`,
     [novo, id, loja_id_ator],
   );
-  return (r.rowCount ?? 0) > 0;
+  if ((r.rowCount ?? 0) === 0) return false;
+
+  // Notifica a outra parte
+  const row = r.rows[0];
+  const outraLoja = loja_id_ator === row.loja_compradora ? row.loja_fornecedora : row.loja_compradora;
+  await notificarSilencioso({
+    loja_id: outraLoja,
+    tipo: "transacao_marketplace",
+    titulo: `Transação #${id}: ${novo}`,
+    mensagem: `${row.produto_snapshot ?? "Pedido"} → status mudou pra ${novo}`,
+    link: "/loja/marketplace",
+    icone: novo === "entregue" ? "✅" : novo === "cancelada" ? "❌" : "💱",
+    prioridade: novo === "cancelada" ? 2 : 1,
+    metadados: { transacao_id: id, status: novo },
+  });
+  return true;
 }
 
 export async function listarTransacoesLoja(loja_id: number, papel?: "compradora" | "fornecedora", limite = 100): Promise<Transacao[]> {
